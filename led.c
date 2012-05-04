@@ -16,44 +16,37 @@
  * General Public License for more details at
  * http://www.gnu.org/copyleft/gpl.html
  *
- * @brief ISS-Notify Firmware
+ * @brief LED Driver
  *
  * @section DESCRIPTION
  *
- * The main file of the firmware that runs ISS-Notify v0.1
+ * Code that manages talking to the LED drivers
  */
+
 #include <avr/io.h>
-#include <util/delay.h>
 #include "led.h"
 
-// CPU prescaler helper
-#define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
-
-int main(void)
+void shift_out(int word)
 {
-  int i;
+  int i = 0;
+  LATCH_HIGH;
+  LATCH_LOW;
   
-	// set for 8 MHz clock (see Makefile)
-	CPU_PRESCALE(0);
-	
-  // JTAG Disable
-  MCUCR = (1 << JTD); 
-	MCUCR = (1 << JTD); 
-	
-	// LED Driver init
-	LED_INIT;
-	SIN_LOW;
-	SCLK_LOW;
-	LATCH_LOW;
-	BLANK_HIGH;
+  //SIN_HIGH;
+  for (i=0;i<16;i++)
+  {
+    // Bit
+    if ((word & (1 << i)) != 0)
+      SIN_HIGH;
+    else
+      SIN_LOW;
+    
+    // Clock
+    SCLK_HIGH;
+    SCLK_LOW;
+  }
+ // SIN_LOW;
 
-	// Loop
-	while (1) {
-	  for (i=4;i<16;i++) {
-	    BLANK_HIGH;
-	    shift_out(1<<i);
-	    BLANK_LOW;
-	    _delay_ms(50);
-	  }
-	}
+  LATCH_HIGH;
+  LATCH_LOW;  
 }
