@@ -19,12 +19,12 @@ int main(void)
 	CPU_PRESCALE(0);
 	LED_CONFIG;
 	LED_OFF;
-	
+
 	// Loop and blink the light
 	while (1) {
 	  LED_ON;
-	  _delay_ms(500);
+	  _delay_ms(100);
 	  LED_OFF;
-	  _delay_ms(500);
+	  _delay_ms(100);
 	}
 }
