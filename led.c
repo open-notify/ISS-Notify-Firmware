@@ -31,21 +31,31 @@ void shift_out(int word)
   int i = 0;
   LATCH_HIGH;
   LATCH_LOW;
+
+  // highest 4 bits always 0
+  SIN_LOW;
+  SCLK_HIGH;
+  SCLK_LOW;   // one
+  SCLK_HIGH;
+  SCLK_LOW;   // two
+  SCLK_HIGH;
+  SCLK_LOW;   // three
+  //SCLK_HIGH;
+  //SCLK_LOW;   // four
   
   //SIN_HIGH;
-  for (i=0;i<16;i++)
+  for (i=12;i>=0;i--)
   {
+    SIN_LOW;
+    
     // Bit
     if ((word & (1 << i)) != 0)
       SIN_HIGH;
-    else
-      SIN_LOW;
     
     // Clock
     SCLK_HIGH;
     SCLK_LOW;
   }
- // SIN_LOW;
 
   LATCH_HIGH;
   LATCH_LOW;  
