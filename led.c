@@ -24,7 +24,113 @@
  */
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include "led.h"
+
+ISR(TIMER1_COMPA_vect) {
+  BLANK_HIGH;
+  if (level == 3) {
+    shift_out(color_data[2][level]);
+    shift_out(color_data[1][level]);
+    shift_out(color_data[0][level]);
+
+    OCR1A = 50;
+    level--;
+  }
+  else if (level == 2) {
+    shift_out(color_data[2][level]);
+    shift_out(color_data[1][level]);
+    shift_out(color_data[0][level]);
+
+    OCR1A = 25;
+    level--;
+  }
+  else if (level == 1) {
+    shift_out(color_data[2][level]);
+    shift_out(color_data[1][level]);
+    shift_out(color_data[0][level]);
+    
+    OCR1A = 15;
+    level--;
+  }
+  else if (level == 0) {
+    shift_out(color_data[2][level]);
+    shift_out(color_data[1][level]);
+    shift_out(color_data[0][level]);
+
+    OCR1A = 8;
+    level = 3;
+  }
+  BLANK_LOW;
+}
+
+void set_data(unsigned int *color)
+{
+  int i;
+  int j;
+  
+  unsigned int red[12], green[12], blue[12];
+  
+  for (i=0;i<12;i++)
+  {
+    red[i]   =  color[i] & 0x00F;
+    green[i] = (color[i] & 0x0F0) >> 4;
+    blue[i]  = (color[i] & 0xF00) >> 8;
+  }
+  
+  //unsigned int *colors[3] = {red,green,blue};
+  
+  unsigned int *colors[3] = {red,green,blue};
+  
+  // Reset
+  for (j=0;j<4;j++)
+  {
+    color_data[2][j] = 0;
+    color_data[1][j] = 0;
+    color_data[0][j] = 0;
+  }
+  
+  for (j=0;j<3;j++)
+  {
+    for (i=0;i<12;i++)
+    {
+      switch (colors[j][i])
+      {
+        case 1:
+          color_data[j][0] |= 1<<i;
+          break;
+        case 2:
+          color_data[j][1] |= 1<<i;
+          break;
+        case 3:
+          color_data[j][2] |= 1<<i;
+          break;
+        case 4:
+          color_data[j][2] |= 1<<i;
+          color_data[j][1] |= 1<<i;
+          break;
+        case 5:
+          color_data[j][3] |= 1<<i;
+          break;
+        case 6:
+          color_data[j][3] |= 1<<i;
+          color_data[j][1] |= 1<<i;
+          break;
+       case 7:
+          color_data[j][3] |= 1<<i;
+          color_data[j][2] |= 1<<i;
+          color_data[j][1] |= 1<<i;
+          break;
+       case 8:
+          color_data[j][3] |= 1<<i;
+          color_data[j][2] |= 1<<i;
+          color_data[j][1] |= 1<<i;
+          color_data[j][0] |= 1<<i;
+          break;
+      } // END switch
+    } // END for i
+  } // END for j
+}
 
 void shift_out(int word)
 {

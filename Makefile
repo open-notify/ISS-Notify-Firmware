@@ -47,6 +47,7 @@ TARGET = ISS-Notify
 # List C source files here. (C dependencies are automatically generated.)
 SRC  =	$(TARGET).c
 SRC += led.c
+SRC += analog.c
 
 # MCU name, you MUST set this to match the board you are using
 # type "make clean" after changing this, so all files will be rebuilt

@@ -49,3 +49,8 @@
  * take a 16 bit number and shifts it out on the data line.
  */
 void shift_out(int word);
+
+// mutable state for swiching lights
+volatile unsigned int level;
+volatile unsigned int color_data[3][4];
+void set_data(unsigned int *color);
