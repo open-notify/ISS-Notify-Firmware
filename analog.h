@@ -30,10 +30,6 @@
 // default to AREF = Vcc
 static uint8_t aref = (1<<REFS0);
 
-// The battery voltage can be read off of pin PB6
-// The mux value for the ATMEGA32U4 is 0x25
-#define BAT_SENSE 0x25
-
 // functions
 int16_t adc_read(uint8_t mux);
 void analogReference(uint8_t mode);

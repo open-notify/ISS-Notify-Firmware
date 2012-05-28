@@ -31,6 +31,15 @@
 // CPU prescaler helper
 #define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
 
+// Battery stuff
+///TODO: Fix values
+#define MAX_BAT_ADC 400
+#define MIN_BAT_ADC 260
+
+// The battery voltage can be read off of pin PB6
+// The mux value for the ATMEGA32U4 is 0x25
+#define BAT_SENSE 0x25
+
 // Hardware initializer routine
 void Setup_Hardware();
 
@@ -76,8 +85,20 @@ int get_battery_voltage()
     
     // Read voltage on battery sense pin
 	  int val = adc_read(BAT_SENSE);
+	  
+	  // 0 isn't 0 V, it's the miniumum battery volage through voltage divider
+	  if (val >= MIN_BAT_ADC)
+	    val = val - MIN_BAT_ADC;
+	  else
+	    return 0;  // no/dead battery, we're done
+	  
 	  // Scale between 0 and 11
-	  val /= 90;
+	  val *= 11;
+	  val /= (MAX_BAT_ADC - MIN_BAT_ADC);
+	  
+	  // Clamp to 11;
+	  if (val > 11)
+	    val = 11;
 	  
 	  // Disable battery measurment
     PORTB &=  ~(1);
