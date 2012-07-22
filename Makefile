@@ -48,6 +48,10 @@ TARGET = ISS-Notify
 SRC  =	$(TARGET).c
 SRC += led.c
 SRC += analog.c
+SRC += usb.c
+SRC += rtc.c
+SRC += library/usb_serial.c
+SRC += library/twi.c
 
 # MCU name, you MUST set this to match the board you are using
 # type "make clean" after changing this, so all files will be rebuilt
