@@ -28,6 +28,9 @@
 #include <avr/io.h>
 #include "analog.h"
 
+// default to AREF = Vcc
+static uint8_t aref = (1<<REFS0);
+
 void analogReference(uint8_t mode)
 {
 	aref = mode & 0xC0;

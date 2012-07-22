@@ -24,15 +24,23 @@
  */
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/wdt.h>
+#include <avr/power.h>
+#include <string.h>
 #include <stdint.h>
 #include <util/delay.h>
 #include <avr/pgmspace.h>
 #include <stdio.h>
-#include "library/usb_serial.h"
+//#include "library/usb_serial.h"
 #include "led.h"
 #include "analog.h"
-#include "usb.h"
+//#include "usb.h"
 #include "rtc.h"
+
+#include "Descriptors.h"
+
+#include "library/LUFA/Version.h"
+#include "library/LUFA/Drivers/USB/USB.h"
 
 // CPU prescaler helper
 #define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
@@ -49,6 +57,42 @@
 // Hardware initializer routine
 void Setup_Hardware(void);
 
+/** Standard file stream for the CDC interface when set up, so that the virtual CDC COM port can be
+ *  used like any regular character stream in the C APIs
+ */
+static FILE USBSerialStream;
+
+/** LUFA CDC Class driver interface configuration and state information. This structure is
+ *  passed to all CDC Class driver functions, so that multiple instances of the same class
+ *  within a device can be differentiated from one another.
+ */
+
+USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
+	{
+		.Config =
+			{
+				.ControlInterfaceNumber         = 0,
+
+				.DataINEndpointNumber           = CDC_TX_EPNUM,
+				.DataINEndpointSize             = CDC_TXRX_EPSIZE,
+				.DataINEndpointDoubleBank       = false,
+
+				.DataOUTEndpointNumber          = CDC_RX_EPNUM,
+				.DataOUTEndpointSize            = CDC_TXRX_EPSIZE,
+				.DataOUTEndpointDoubleBank      = false,
+
+				.NotificationEndpointNumber     = CDC_NOTIFICATION_EPNUM,
+				.NotificationEndpointSize       = CDC_NOTIFICATION_EPSIZE,
+				.NotificationEndpointDoubleBank = false,
+			},
+	};
+
+void EVENT_USB_Device_Connect(void);
+void EVENT_USB_Device_Disconnect(void);
+void EVENT_USB_Device_ConfigurationChanged(void);
+void EVENT_USB_Device_ControlRequest(void);
+
+		
 // Measure battery voltage
 int get_battery_voltage(void);
 
@@ -58,23 +102,10 @@ int main(void)
   
 	Setup_Hardware();
 	
-	/*
-  unsigned int anime_wheel[12][12] ={{   8, 518,1028,1538,2048,1568,1088, 608, 128,  98,  68,  38}
-	                                  ,{  38,   8, 518,1028,1538,2048,1568,1088, 608, 128,  98,  68}
-	                                  ,{  68,  38,   8, 518,1028,1538,2048,1568,1088, 608, 128,  98}
-	                                  ,{  98,  68,  38,   8, 518,1028,1538,2048,1568,1088, 608, 128}
-	                                  ,{ 128,  98,  68,  38,   8, 518,1028,1538,2048,1568,1088, 608}
-	                                  ,{ 608, 128,  98,  68,  38,   8, 518,1028,1538,2048,1568,1088}
-	                                  ,{1088, 608, 128,  98,  68,  38,   8, 518,1028,1538,2048,1568}
-	                                  ,{1568,1088, 608, 128,  98,  68,  38,   8, 518,1028,1538,2048}
-	                                  ,{2048,1568,1088, 608, 128,  98,  68,  38,   8, 518,1028,1538}
-	                                  ,{1538,2048,1568,1088, 608, 128,  98,  68,  38,   8, 518,1028}
-	                                  ,{1028,1538,2048,1568,1088, 608, 128,  98,  68,  38,   8, 518}
-	                                  ,{ 518,1028,1538,2048,1568,1088, 608, 128,  98,  68,  38,   8}};
-	
-  */
 	unsigned int battery_wheel[12] = {8,  8,  24, 40, 39, 55, 70, 99, 131, 130, 129, 128};
 
+  /* Create a regular character stream for the interface so that it can be used with the stdio.h functions */
+	CDC_Device_CreateStream(&VirtualSerial_CDC_Interface, &USBSerialStream);
   // Enable interupts
   sei();
 
@@ -96,10 +127,24 @@ int main(void)
      _delay_ms(8);
   }
   
+  while(1) {
+  
+    CDC_Device_SendString(&VirtualSerial_CDC_Interface, "messages\n");
+
+		/* Must throw away unused bytes from the host, or it will lock up while waiting for the device */
+		CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
+
+		CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
+		USB_USBTask();
+		
+		//_delay_ms(1000);
+		;
+  }
+  /*
 	while (1) {
 		// wait for the user to run their terminal emulator program
 		// which sets DTR to indicate it is ready to receive.
-		while (!(usb_serial_get_control() & USB_SERIAL_DTR)) /* wait */ ;
+		while (!(usb_serial_get_control() & USB_SERIAL_DTR)) ; //wait
 
 		// discard anything that was received prior.  Sometimes the
 		// operating system or other software will send a modem
@@ -121,7 +166,7 @@ int main(void)
     
     //reset_rtc();
     //set_time(testt);
-    */
+    
     
 		while (1) {
 		  
@@ -143,9 +188,47 @@ int main(void)
 		  
     }
 	}
-
-  return 0;
+	*/
 }
+
+/** Event handler for the library USB Connection event. */
+
+void EVENT_USB_Device_Connect(void)
+{
+  //LEDs_SetAllLEDs(LEDMASK_USB_ENUMERATING);
+	return;
+}
+
+
+/** Event handler for the library USB Disconnection event. */
+
+void EVENT_USB_Device_Disconnect(void)
+{
+  //LEDs_SetAllLEDs(LEDMASK_USB_NOTREADY);
+	return;
+}
+
+
+/** Event handler for the library USB Configuration Changed event. */
+
+void EVENT_USB_Device_ConfigurationChanged(void)
+{
+	bool ConfigSuccess = true;
+
+	ConfigSuccess &= CDC_Device_ConfigureEndpoints(&VirtualSerial_CDC_Interface);
+
+	//LEDs_SetAllLEDs(ConfigSuccess ? LEDMASK_USB_READY : LEDMASK_USB_ERROR);
+}
+
+
+/** Event handler for the library USB Control Request reception event. */
+
+void EVENT_USB_Device_ControlRequest(void)
+{
+	CDC_Device_ProcessControlRequest(&VirtualSerial_CDC_Interface);
+}
+
+
 
 int get_battery_voltage(void)
 {
@@ -193,10 +276,33 @@ void Setup_Hardware(void)
 	LATCH_LOW;
 	BLANK_HIGH;
 	
+	
+	// LUFA USB
+	/* Disable watchdog if enabled by bootloader/fuses */
+	MCUSR &= ~(1 << WDRF);
+	wdt_disable();
+
+	/* Disable clock division */
+	//clock_prescale_set(clock_div_1);
+
+	/* Hardware Initialization */
+	USB_Init();
+
+	/* Timer Initialization */
+//	OCR0A  = 100;
+//	TCCR0A = (1 << WGM01);
+//	TCCR0B = (1 << CS00);
+//	TIMSK0 = (1 << OCIE0A);
+	
+	// END LUFA USB
+	
+	
+	/*
 	// USB
 	usb_init();
-	while (!usb_configured()) /* wait */ ;
+	while (!usb_configured()) ; // wait
 	//_delay_ms(500);
+	*/
 	
 	// ready clock
 	rtc_init();

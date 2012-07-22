@@ -27,9 +27,6 @@
 // Analog prescaler
 #define ADC_PRESCALER ((1<<ADPS2) | (1<<ADPS0))
 
-// default to AREF = Vcc
-static uint8_t aref = (1<<REFS0);
-
 // functions
 int16_t adc_read(uint8_t mux);
 void analogReference(uint8_t mode);
