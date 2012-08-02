@@ -64,6 +64,31 @@ ISR(TIMER1_COMPA_vect) {
   BLANK_LOW;
 }
 
+void LED_Init(void)
+{
+  // LED Driver init
+	LED_INIT;
+	SIN_LOW;
+	SCLK_LOW;
+	LATCH_LOW;
+	//BLANK_HIGH;
+	BLANK_LOW;
+	
+	level = 0;
+	
+	/* Timer Initialization */
+  TIMSK1 = _BV(OCIE1A);
+	TCCR1B |=
+    // Prescaler divides the clock rate by 256.
+    (_BV(CS12) )  |
+    // Set WGM12 bit to clear timer on compare with the OCR1A
+    // register.
+    _BV(WGM12);
+    
+  // 8 MHz clock. 1024 prescaler. Counting to 7812 is one second.
+  OCR1A = 1;
+}
+
 void set_data(unsigned int *color)
 {
   int i;

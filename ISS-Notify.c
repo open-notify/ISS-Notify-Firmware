@@ -26,29 +26,22 @@
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
 #include <avr/power.h>
+#include <avr/pgmspace.h>
+#include <util/delay.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <util/delay.h>
-#include <avr/pgmspace.h>
-#include <stdio.h>
-#include "led.h"
-#include "analog.h"
-#include "rtc.h"
-#include "Descriptors.h"
 #include "library/LUFA/Version.h"
 #include "library/LUFA/Drivers/USB/USB.h"
+#include "hardware/led.h"
+#include "hardware/analog.h"
+#include "hardware/rtc.h"
+#include "hardware/charge.h"
+#include "Descriptors.h"
+
 
 // CPU prescaler helper
 #define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
-
-// Battery stuff
-///TODO: Fix values
-#define MAX_BAT_ADC 390
-#define MIN_BAT_ADC 280
-
-// The battery voltage can be read off of pin PB6
-// The mux value for the ATMEGA32U4 is 0x25
-#define BAT_SENSE 0x25
 
 // Hardware initializer routine
 void Setup_Hardware(void);
@@ -87,9 +80,6 @@ void EVENT_USB_Device_Disconnect(void);
 void EVENT_USB_Device_ConfigurationChanged(void);
 void EVENT_USB_Device_ControlRequest(void);
 
-		
-// Measure battery voltage
-uint8_t get_battery_voltage(void);
 
 int main(void)
 {
@@ -208,33 +198,6 @@ void EVENT_USB_Device_ControlRequest(void)
   //set_data(show);
 }
 
-uint8_t get_battery_voltage(void)
-{
-    // Enable battery measurment
-    PORTB |=  1;
-    
-    // Read voltage on battery sense pin
-	  uint16_t val = adc_read(BAT_SENSE);
-	  
-	  // 0 isn't 0 V, it's the miniumum battery volage through voltage divider
-	  if (val >= MIN_BAT_ADC)
-	    val = val - MIN_BAT_ADC;
-	  else
-	    return 0;  // no/dead battery, we're done
-	  
-	  // Scale between 0 and 11
-	  val *= 11;
-	  val /= (MAX_BAT_ADC - MIN_BAT_ADC);
-	  
-	  // Clamp to 11;
-	  if (val > 11)
-	    val = 11;
-	  
-	  // Disable battery measurment
-    PORTB &=  ~(1);
-	  
-	  return val;
-}
 
 void Setup_Hardware(void)
 {
@@ -245,44 +208,21 @@ void Setup_Hardware(void)
   MCUCR = (1 << JTD); 
 	MCUCR = (1 << JTD); 
 	
-	level = 0;
-	
-	// LED Driver init
-	LED_INIT;
-	SIN_LOW;
-	SCLK_LOW;
-	LATCH_LOW;
-	BLANK_HIGH;
-	
-	
-	// LUFA USB
 	/* Disable watchdog if enabled by bootloader/fuses */
 	MCUSR &= ~(1 << WDRF);
 	wdt_disable();
-
-	/* Hardware Initialization */
-	USB_Init();
 	
-	// ready clock
-	rtc_init();
+	cli();
+	
+  LED_Init();
+
+	USB_Init();
+
+	RTC_Init();
 	
 	// Bat measure
 	DDRB |= 0x01;
   
-  cli();
-  
-  /* Timer Initialization */
-  TIMSK1 = _BV(OCIE1A);
-	TCCR1B |=
-    // Prescaler divides the clock rate by 256.
-    (_BV(CS12) )  |
-    // Set WGM12 bit to clear timer on compare with the OCR1A
-    // register.
-    _BV(WGM12);
-    
-  // 8 MHz clock. 1024 prescaler. Counting to 7812 is one second.
-  OCR1A = 1;
-   
   /*
 	TIMSK3 = _BV(OCIE3A);
 	TCCR3B |=
@@ -295,6 +235,5 @@ void Setup_Hardware(void)
   // 8 MHz clock. 1024 prescaler. Counting to 7812 is one second.
   OCR3A = 100;
   */
-  
-  BLANK_LOW;
+
 }

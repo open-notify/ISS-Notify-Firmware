@@ -7,7 +7,7 @@ static uint8_t rtc_state;
 static uint8_t tx_buffer[MAX_BUFFER_LENGTH];
 static uint8_t rx_buffer[MAX_BUFFER_LENGTH];
 
-void rtc_init(void)
+void RTC_Init(void)
 {
   twi_init();
 }

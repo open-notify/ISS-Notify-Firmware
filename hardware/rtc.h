@@ -14,7 +14,7 @@ typedef struct {
   uint8_t second;
 } time;
 
-void rtc_init(void);
+void RTC_Init(void);
 uint32_t get_time(void);
 void set_time(time t);
 void reset_rtc(void);

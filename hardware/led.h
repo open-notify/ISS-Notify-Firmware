@@ -50,6 +50,11 @@
  */
 void shift_out(int word);
 
+/**
+ * Initilize hardware
+ */
+void LED_Init(void);
+
 // mutable state for swiching lights
 volatile unsigned int level;
 volatile unsigned int color_data[3][4];
