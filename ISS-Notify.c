@@ -85,8 +85,6 @@ int main(void)
 {
   uint8_t batv;
   int j,k;
-  
-  uint32_t timelapse;
 
 	Setup_Hardware();
 	
@@ -118,43 +116,52 @@ int main(void)
   
   while(1) {
   
-    /*
-    if (timelapse > 100000)
-    {
-      timelapse = 0;
-      
-      uint32_t time = get_time();
-      char printbuf[32];
-		  int len = sprintf(printbuf, "s: %lu \n", time);
-      fputs(printbuf, &USBSerialStream);
-    }
-    //fputs("message\n", &USBSerialStream);
-    //CDC_Device_SendString(&VirtualSerial_CDC_Interface, "message\n");
-    */
-    
-		/* Must throw away unused bytes from the host, or it will lock up while waiting for the device */
-		//CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
-		/*
-    uint8_t ColourUpdate = fgetc(&USBSerialStream);
-    
-    if (ColourUpdate == 97) {
-      unsigned int col = fgetc(&USBSerialStream);
-      unsigned int show[12] = {col,col,col,col,col,col,col,col,col,col,col,col};
-      set_data(show);
-    }
-    */
+    // Color update
     int n;
-    int read = fscanf (&USBSerialStream,"c%d",&n);
+    int read = fscanf(&USBSerialStream,"c%d",&n);
     if (read > 0) {
       unsigned int show[12] = {n,n,n,n,n,n,n,n,n,n,n,n};
       set_data(show);
     }
     
+    // knock
+    char hello;
+    if (fscanf(&USBSerialStream,"hello%c", &hello) == 1) {
+      // Echo
+      fputs("hi", &USBSerialStream);
+    }
+    
+    // battary
+    char bat;
+    if (fscanf(&USBSerialStream,"bat%c", &bat) == 1) {
+      // get charge status
+      CHARGE_STATUS chargestat = get_charge_status();
+
+      if (get_power_status() > 0)
+      {
+        fputs("bNOBAT", &USBSerialStream);
+      }
+      else
+      { 
+        switch (chargestat) {
+          case BULK_CHARGE:
+            fputs("bCHARGING", &USBSerialStream);
+            break;
+          case TRICKLE_CHARGE:
+            fputs("bCHARGED", &USBSerialStream);
+            break;
+          default:
+            fputs("bSTANDBY", &USBSerialStream);
+            break;
+        }
+      }
+    }
+    
+    //CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
+    
+    // USB Service
 		CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
 		USB_USBTask();
-		
-		timelapse++;
-		;
   }
 }
 
@@ -220,8 +227,8 @@ void Setup_Hardware(void)
 
 	RTC_Init();
 	
-	// Bat measure
-	DDRB |= 0x01;
+	charge_Init();
+
   
   /*
 	TIMSK3 = _BV(OCIE3A);

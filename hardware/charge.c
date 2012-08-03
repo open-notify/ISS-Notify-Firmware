@@ -3,6 +3,25 @@
 #include "hardware/analog.h"
 #include "charge.h"
 
+/**
+ * Hardware init
+ */
+void charge_Init(void)
+{
+  // Pull ups on battary stat
+  DDRD &= ~(1<<STAT1);
+  PORTD |= (1<<STAT1);
+  
+  DDRB &= ~(1<<STAT2);
+  PORTB |= (1<<STAT2);
+  
+  DDRC &= ~(1<<PG);
+  PORTC |= (1<<PG);
+  
+  // Bat measure
+	DDRB |= 0x01;
+}
+
 uint8_t get_battery_voltage(void)
 {
     // Enable battery measurment
@@ -29,4 +48,20 @@ uint8_t get_battery_voltage(void)
     PORTB &=  ~(1);
 	  
 	  return val;
+}
+
+CHARGE_STATUS get_charge_status(void)
+{
+  if (STAT1_READ > 0)
+    return BULK_CHARGE;
+    
+  if (STAT2_READ > 0)
+    return TRICKLE_CHARGE;
+
+  return NONE;
+}
+
+uint8_t get_power_status(void)
+{
+  return PG_READ;
 }
