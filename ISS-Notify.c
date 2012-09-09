@@ -84,7 +84,7 @@ void EVENT_USB_Device_ControlRequest(void);
 int main(void)
 {
   uint8_t batv;
-  int j,k;
+  int i,j,k;
 
 	Setup_Hardware();
 	
@@ -114,13 +114,19 @@ int main(void)
      _delay_ms(8);
   }
   
-  while(1) {
+  for (i=0;i<12;i++) {
+   show[i] = 0;
+  }
   
+  while(1) {
+ 
     // Color update
     int n;
     int read = fscanf(&USBSerialStream,"c%d",&n);
     if (read > 0) {
-      unsigned int show[12] = {n,n,n,n,n,n,n,n,n,n,n,n};
+      for (i=0;i<12;i++) {
+        show[i] = n;
+      }
       set_data(show);
     }
     
@@ -131,13 +137,28 @@ int main(void)
       fputs("hi", &USBSerialStream);
     }
     
-    // battary
+    // get time
+    char readtime;
+    if (fscanf(&USBSerialStream,"t%c", &readtime) == 1) {
+      time now = get_time();
+      fprintf(&USBSerialStream, "Y%02dM%02dD%02dH%02dM%02dS%02d", now.year, now.month, now.day, now.hour, now.minute, now.second);
+    }
+    
+    // set time
+    int year, month, day, hour, min, sec;
+    if (fscanf(&USBSerialStream,"Y%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
+      time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
+      set_time(t);
+      fputs("set", &USBSerialStream);
+    }
+
+    // battery
     char bat;
     if (fscanf(&USBSerialStream,"bat%c", &bat) == 1) {
       // get charge status
       CHARGE_STATUS chargestat = get_charge_status();
 
-      if (get_power_status() > 0)
+      if (get_power_status() < 0)
       {
         fputs("bNOBAT", &USBSerialStream);
       }
@@ -157,6 +178,33 @@ int main(void)
       }
     }
     
+    /* Power debug
+    
+    uint8_t pg = get_power_status();
+    CHARGE_STATUS chargestat = get_charge_status();
+    
+    if (pg == 0)
+      show[2] = 8;
+    else
+      show[2] = 0;
+
+    
+    switch (chargestat) {
+      case BULK_CHARGE:
+        show[0] = 8;
+        show[1] = 0;
+        break;
+      case TRICKLE_CHARGE:
+        show[1] = 8;
+        show[0] = 0;
+        break;
+      default:
+        show[0] = 8;
+        show[0] = 0;
+        break;
+    }
+    set_data(show);
+    */
     //CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
     
     // USB Service

@@ -12,7 +12,7 @@ void RTC_Init(void)
   twi_init();
 }
 
-uint32_t get_time(void)
+time get_time(void)
 {
   uint8_t seconds = bcd2dec(read_address(0x00) & 0x7f);
   uint8_t minutes = bcd2dec(read_address(0x01) & 0x7f);
@@ -24,8 +24,7 @@ uint32_t get_time(void)
   
   time currentTime = mktime(year, month, day, hour, minutes, seconds);
   
-  return time2unix(currentTime);
-  //return (uint32_t) seconds;
+  return currentTime;
 }
 
 void set_time(time t)
@@ -129,43 +128,4 @@ uint8_t dec2bcd(uint8_t val)
 uint8_t bcd2dec(uint8_t val)
 {
   return ( (val/16*10) + (val%16) );
-}
-
-// Convert year/month/day to unix time
-uint32_t time2unix(time t)
-{
-  // Temp values
-  int32_t  a, y, m;
-  uint16_t lyear;
-  
-  int32_t  JDN;
-  double    JD;
-  double    timediff;
-  
-  // returned unix time
-  uint32_t unixtime;
-
-  // Fix 8 bit year
-  if (t.year < 70)
-    lyear = t.year + 2000;
-  else
-    lyear = t.year + 1900;
-
-
-  // Julian Day number
-  a   = (14 - t.month) / 12;
-  y   = lyear + 4800 - a;
-  m   = t.month + (12*a) - 3;
-  JDN = (int32_t) t.day + (((153*m) + 2) / 5) + (365*y) + (y/4) - (y/100) + (y/400) - 32045;
-  
-  // Diff to unix epoch
-  timediff = (double) JDN - 2440587.5;
-  
-  // to seconds
-  unixtime = (uint32_t) timediff*86400.0;
-
-  // Add back in partial days
-  unixtime = unixtime + ((t.hour-12) * 3600) + (t.minute * 60) + t.second;
-
-  return unixtime;
 }
