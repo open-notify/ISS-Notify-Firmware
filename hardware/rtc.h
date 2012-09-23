@@ -2,8 +2,19 @@
 
 #define RTC_DEVICE_ADDRESS 0x6f
 
-#define RTC_ST      0x80
+
 #define RTC_VBATEN  0x08
+
+/* Control bits */
+#define RTC_ST      0x80
+#define RTC_OUT     7
+#define RTC_ALM0    4
+#define RTC_ALM1    5
+#define ALM0POL     7
+#define ALM0C2      6
+#define ALM0C1      5
+#define ALM0C0      4
+#define ALM0IF      3
 
 typedef struct {
   uint8_t year;
@@ -17,6 +28,8 @@ typedef struct {
 void RTC_Init(void);
 time get_time(void);
 void set_time(time t);
+void set_alarm0(time t);
+void clear_alarm0(void);
 void reset_rtc(void);
 
 uint8_t read_address(uint8_t address);

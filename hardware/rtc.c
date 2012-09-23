@@ -10,6 +10,14 @@ static uint8_t rx_buffer[MAX_BUFFER_LENGTH];
 void RTC_Init(void)
 {
   twi_init();
+  
+  //interal pullup for alarm interrupt
+	DDRD  &= ~(1<<3);
+	PORTD |=  (1<<3);
+	
+	// interrupt on low
+	EICRA &= ~(1<<ISC30)|~(1<<ISC31); //Active when low 
+  EIMSK |=  (1<<INT3);              //external pin interrupt enable.
 }
 
 time get_time(void)
@@ -52,6 +60,55 @@ void set_time(time t)
   
   // Send to the RTC
   rtc_state = twi_writeTo(RTC_DEVICE_ADDRESS, tx_buffer, 4, 0);
+}
+
+void clear_alarm0(void)
+{
+  tx_buffer[0] = 0x0D;      // Alarm0 controll
+  tx_buffer[1] = 0;
+  
+  // Send to the RTC
+  rtc_state = twi_writeTo(RTC_DEVICE_ADDRESS, tx_buffer, 2, 0);
+  
+  
+  // turn off alarm
+  tx_buffer[0] = 0x07;
+  tx_buffer[1] = (1<<RTC_OUT);
+  
+  // Send to the RTC
+  rtc_state = twi_writeTo(RTC_DEVICE_ADDRESS, tx_buffer, 2, 0);
+}
+
+void set_alarm0(time t)
+{
+  uint8_t seconds = dec2bcd(t.second & 0x7f);
+  uint8_t minutes = dec2bcd(t.minute & 0x7f);
+  uint8_t hour    = dec2bcd(t.hour   & 0x3f);
+  
+  uint8_t day     = dec2bcd(t.day    & 0x3f);
+  uint8_t month   = dec2bcd(t.month  & 0x1f);
+  uint8_t year    = dec2bcd(t.year         );
+  
+  int dow = read_address(0x03) & 0x07;
+  
+  tx_buffer[0] = 0x0A;      // Beginning of Alarm0
+  tx_buffer[1] = seconds;
+  tx_buffer[2] = minutes;
+  tx_buffer[3] = hour;
+  tx_buffer[4] = (1<<ALM0C2)|(1<<ALM0C1)|(1<<ALM0C0)|dow;
+  tx_buffer[5] = day;
+  tx_buffer[6] = month;
+  tx_buffer[7] = year;
+    
+  // Send to the RTC
+  rtc_state = twi_writeTo(RTC_DEVICE_ADDRESS, tx_buffer, 8, 0);
+
+  // turn on alarm
+  tx_buffer[0] = 0x07;
+  tx_buffer[1] = (1<<RTC_ALM0);
+  
+  // Send to the RTC
+  rtc_state = twi_writeTo(RTC_DEVICE_ADDRESS, tx_buffer, 2, 0);
 }
 
 void reset_rtc(void)

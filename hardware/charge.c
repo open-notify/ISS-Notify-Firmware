@@ -52,12 +52,21 @@ uint8_t get_battery_voltage(void)
 
 CHARGE_STATUS get_charge_status(void)
 {
-  if (STAT1_READ > 0)
-    return BULK_CHARGE;
+  uint8_t stat1 = 0;
+  uint8_t stat2 = 0;
+  
+  if (STAT1_READ == 0)
+    stat1 = 1;
     
-  if (STAT2_READ > 0)
-    return TRICKLE_CHARGE;
+  if (STAT2_READ == 0)
+    stat2 = 1;
 
+  if ((stat1 & stat2) > 0)
+    return NONE;
+  if (stat1 > 0)
+    return BULK_CHARGE;
+  if (stat2 > 0)
+    return TRICKLE_CHARGE;
   return NONE;
 }
 

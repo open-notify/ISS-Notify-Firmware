@@ -45,6 +45,7 @@
 
 // Hardware initializer routine
 void Setup_Hardware(void);
+uint32_t millis(void);
 
 /** Standard file stream for the CDC interface when set up, so that the virtual CDC COM port can be
  *  used like any regular character stream in the C APIs
@@ -80,14 +81,45 @@ void EVENT_USB_Device_Disconnect(void);
 void EVENT_USB_Device_ConfigurationChanged(void);
 void EVENT_USB_Device_ControlRequest(void);
 
+volatile uint8_t reset_alarm = 0;
+volatile uint8_t alarm       = 0;
+volatile uint8_t pass        = 0;
+volatile uint32_t ms         = 0;
+
+/**
+ * Wake up on alarm
+ */
+ISR(INT3_vect) 
+{
+  // Disable interupt
+  EIMSK &= ~(1<<INT3);
+  
+  //unsigned int show[12] = {0,8,0,8,0,128,0,8,0,8,0,8};
+  //set_data(show);
+  //reset_alarm = 1;
+  alarm = 1;
+}
+
+// milli timer
+ISR(TIMER3_COMPA_vect)
+{
+  ms++;
+} 
+
+// milli get
+uint32_t millis(void) 
+{ 
+  return ms; 
+}
 
 int main(void)
 {
   uint8_t batv;
-  int i,j,k;
+  int i,j,k,a;
+  uint32_t premills = 0;
 
 	Setup_Hardware();
-	
+   
 	unsigned int battery_wheel[12] = {8,  8,  24, 40, 39, 55, 70, 99, 131, 130, 129, 128};
 
   /* Create a regular character stream for the interface so that it can be used with the stdio.h functions */
@@ -118,6 +150,7 @@ int main(void)
    show[i] = 0;
   }
   
+  a = 0;
   while(1) {
  
     // Color update
@@ -130,11 +163,16 @@ int main(void)
       set_data(show);
     }
     
-    // knock
+    // knock knock
     char hello;
     if (fscanf(&USBSerialStream,"hello%c", &hello) == 1) {
-      // Echo
+      // whos there?
       fputs("hi", &USBSerialStream);
+    }
+    
+    if (fscanf(&USBSerialStream,"ms%c", &hello) == 1) {
+      // whos there?
+      fprintf(&USBSerialStream, "%ul", millis());
     }
     
     // get time
@@ -146,10 +184,24 @@ int main(void)
     
     // set time
     int year, month, day, hour, min, sec;
-    if (fscanf(&USBSerialStream,"Y%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
+    if (fscanf(&USBSerialStream,"TY%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
       time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
       set_time(t);
       fputs("set", &USBSerialStream);
+    }
+    
+    // set alarm
+    if (fscanf(&USBSerialStream,"AY%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
+      time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
+      set_alarm0(t);
+      fputs("set", &USBSerialStream);
+    }
+    
+    char ra;
+    if (fscanf(&USBSerialStream,"ra%c", &ra) == 1) {
+      // Echo
+      clear_alarm0();
+      fputs("reset alarm", &USBSerialStream);
     }
 
     // battery
@@ -178,38 +230,49 @@ int main(void)
       }
     }
     
-    /* Power debug
-    
-    uint8_t pg = get_power_status();
-    CHARGE_STATUS chargestat = get_charge_status();
-    
-    if (pg == 0)
-      show[2] = 8;
-    else
-      show[2] = 0;
-
-    
-    switch (chargestat) {
-      case BULK_CHARGE:
-        show[0] = 8;
-        show[1] = 0;
-        break;
-      case TRICKLE_CHARGE:
-        show[1] = 8;
-        show[0] = 0;
-        break;
-      default:
-        show[0] = 8;
-        show[0] = 0;
-        break;
+    if (pass > 0)
+    {
+      uint32_t curmills = millis();
+      if((curmills - premills) > 100) {
+        show[a] = 8;
+        set_data(show);
+        a++;
+        if (a >= 12)
+        {
+          for (i=0;i<12;i++) {
+           show[i] = 0;
+          }
+          a = 0;
+        }
+        premills = curmills;
+      }
     }
-    set_data(show);
-    */
-    //CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
+    
+    // When an alarm is triggered by the RTC:
+    if (alarm > 0)
+    {
+      // Turn off alarm
+      clear_alarm0();
+      
+      pass = 1;
+      
+      //unsigned int beep[12] = {3840,8,0,8,0,128,0,8,0,8,1954,8};
+      //set_data(beep);
+    
+      // Renenable alarm interupt
+		  EIMSK |=  (1<<INT3);
+      alarm = 0;
+    }
     
     // USB Service
 		CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
 		USB_USBTask();
+		
+		if (reset_alarm > 0)
+		  clear_alarm0();
+		  reset_alarm = 0;
+		  // Renenable interupts
+		  EIMSK |=  (1<<INT3);
   }
 }
 
@@ -277,18 +340,8 @@ void Setup_Hardware(void)
 	
 	charge_Init();
 
-  
-  /*
-	TIMSK3 = _BV(OCIE3A);
-	TCCR3B |=
-    // Prescaler divides the clock rate by 256.
-    (_BV(CS32) )  |
-    // Set WGM12 bit to clear timer on compare with the OCR1A
-    // register.
-    _BV(WGM32);
-    
-  // 8 MHz clock. 1024 prescaler. Counting to 7812 is one second.
-  OCR3A = 100;
-  */
-
+  // milli timer
+  OCR3AL = 8;
+  TCCR3B = (1<<WGM32)|(5<<CS30); //ctc, div1024
+  TIMSK3 = (1<<OCIE3A); //compa irq
 }
