@@ -27,6 +27,7 @@
 #include <avr/wdt.h>
 #include <avr/power.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 #include <util/delay.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,6 +87,9 @@ volatile uint8_t alarm       = 0;
 volatile uint8_t pass        = 0;
 volatile uint32_t ms         = 0;
 
+unsigned int show[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
+
+
 /**
  * Wake up on alarm
  */
@@ -128,28 +132,42 @@ int main(void)
   // Enable interupts
   sei();
 
-  batv = get_battery_voltage();
-  unsigned int show[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
-  for (j=0;j<=batv;j++)
-  {
-     for (k=0;k<=j;k++)
-       show[k] = battery_wheel[k];
-     set_data(show);
-     _delay_ms(8);
-  }
-  _delay_ms(400);
+  //batv = get_battery_voltage();
+    //for (j=0;j<=batv;j++)
+  //{
+  //   for (k=0;k<=j;k++)
+  //     show[k] = battery_wheel[k];
+  //   set_data(show);
+  //   _delay_ms(8);
+  //}
+  //_delay_ms(400);
   
-  for (j=11;j>=0;j--)
-  {
-     show[j] = 0;
-     set_data(show);
-     _delay_ms(8);
-  }
+  //for (j=11;j>=0;j--)
+  //{
+  //   show[j] = 0;
+  //   set_data(show);
+  //   _delay_ms(8);
+  //}
   
-  for (i=0;i<12;i++) {
-   show[i] = 0;
-  }
-  
+  //for (i=0;i<12;i++) {
+  // show[i] = 0;
+  //}
+
+    uint16_t stored_color;
+
+    stored_color = eeprom_read_word((uint16_t*)0x00);
+    for (i=0;i<12;i++) {
+        show[i] = (int) stored_color;
+        set_data(show);
+        _delay_ms(20);
+    }
+    _delay_ms(100);
+    for (i=11;i>=0;i--) {
+        show[i] = 0;
+        set_data(show);
+        _delay_ms(20);
+    }
+
   a = 0;
   while(1) {
  
@@ -174,7 +192,13 @@ int main(void)
       // whos there?
       fprintf(&USBSerialStream, "%ul", millis());
     }
-    
+
+    // Set color
+    int color;
+    if (fscanf(&USBSerialStream,"setc%d", &color) == 1) {
+         eeprom_update_word((uint16_t*)0x00, (uint16_t)color);  
+    }
+
     // get time
     char readtime;
     if (fscanf(&USBSerialStream,"t%c", &readtime) == 1) {
@@ -301,8 +325,8 @@ void EVENT_USB_Device_ConfigurationChanged(void)
 
 	ConfigSuccess &= CDC_Device_ConfigureEndpoints(&VirtualSerial_CDC_Interface);
 	
-	unsigned int show[12] = {0,0,0,0,0,0,0,0,0,2048,0,0};
-  set_data(show);
+    //unsigned int show[12] = {0,0,0,0,0,0,0,0,0,2048,0,0};
+    //set_data(show);
 
 	//LEDs_SetAllLEDs(ConfigSuccess ? LEDMASK_USB_READY : LEDMASK_USB_ERROR);
 }

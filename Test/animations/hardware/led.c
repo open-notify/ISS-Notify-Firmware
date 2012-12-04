@@ -71,15 +71,8 @@ void LED_Init(void)
 	SIN_LOW;
 	SCLK_LOW;
 	LATCH_LOW;
-	BLANK_HIGH;
-	//BLANK_LOW;
-
-    int i,j;
-    for (i=0;i<3;i++)
-    {
-        for (j=0;j<4;j++)
-            color_data[i][j] = 0;
-    }
+	//BLANK_HIGH;
+	BLANK_LOW;
 	
 	level = 0;
 	
