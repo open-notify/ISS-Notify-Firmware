@@ -38,6 +38,7 @@
 #include "hardware/analog.h"
 #include "hardware/rtc.h"
 #include "hardware/charge.h"
+#include "structs.h"
 #include "Descriptors.h"
 
 
@@ -86,6 +87,10 @@ volatile uint8_t reset_alarm = 0;
 volatile uint8_t alarm       = 0;
 volatile uint8_t pass        = 0;
 volatile uint32_t ms         = 0;
+
+// EEPROM Storage
+uint16_t EEMEM NonVolatileColor;
+ipass EEMEM ISS_Passes[10];
 
 unsigned int show[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 
@@ -155,7 +160,7 @@ int main(void)
 
     uint16_t stored_color;
 
-    stored_color = eeprom_read_word((uint16_t*)0x00);
+    stored_color = eeprom_read_word(&NonVolatileColor);
     for (i=0;i<12;i++) {
         show[i] = (int) stored_color;
         set_data(show);
@@ -196,7 +201,22 @@ int main(void)
     // Set color
     int color;
     if (fscanf(&USBSerialStream,"setc%d", &color) == 1) {
-         eeprom_update_word((uint16_t*)0x00, (uint16_t)color);  
+         eeprom_update_word((uint16_t*) &NonVolatileColor, (uint16_t)color);  
+    }
+
+    // Set block
+    int tvalue;
+    ipass block[10];
+    if (fscanf(&USBSerialStream, "z%d", &tvalue) == 1) {
+        block[0].time = 1234567;
+        block[0].duration = 500;
+        eeprom_update_block((const void * ) &block, (void*) &ISS_Passes, sizeof(ipass));        
+    }
+
+    // Get block
+    if (fscanf(&USBSerialStream,"getvalue%c", &hello) == 1) {
+        eeprom_read_block((void*) &block, (const void *) &ISS_Passes, sizeof(ipass));
+        fprintf(&USBSerialStream, "%lu - %u", block[0].time, block[0].duration);
     }
 
     // get time
