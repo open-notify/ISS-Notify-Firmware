@@ -9,15 +9,15 @@ static uint8_t rx_buffer[MAX_BUFFER_LENGTH];
 
 void RTC_Init(void)
 {
-  twi_init();
-  
-  //interal pullup for alarm interrupt
+	twi_init();
+
+	//interal pullup for alarm interrupt
 	DDRD  &= ~(1<<3);
 	PORTD |=  (1<<3);
 	
 	// interrupt on low
 	EICRA &= ~(1<<ISC30)|~(1<<ISC31); //Active when low 
-  EIMSK |=  (1<<INT3);              //external pin interrupt enable.
+	EIMSK |=  (1<<INT3);              //external pin interrupt enable.
 }
 
 time get_time(void)

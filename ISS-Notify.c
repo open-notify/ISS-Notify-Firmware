@@ -45,6 +45,9 @@
 // CPU prescaler helper
 #define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
 
+// Maximum number of passes EEPROM can hold
+#define MAXPASS 10
+
 // Hardware initializer routine
 void Setup_Hardware(void);
 uint32_t millis(void);
@@ -53,6 +56,9 @@ void ack(void);
 void say_ms(void);
 void set_color(void);
 void say_time(void);
+void set_passes(void);
+void dump_mem(void);
+void set_clock(void);
 
 /** Standard file stream for the CDC interface when set up, so that the virtual CDC COM port can be
  *  used like any regular character stream in the C APIs
@@ -97,19 +103,28 @@ volatile uint32_t ms         = 0;
 uint16_t EEMEM NonVolatileColor;
 //uint8_t EEMEM NonVolatileOptions;
 uint8_t EEMEM NumOfStoredISSPasses;
-ipass EEMEM StoredISSPasses[50];
+ipass EEMEM StoredISSPasses[MAXPASS];
 
 // Global variable that always stores current color
 unsigned int show[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
 
 
 // Commands:
-static const cmd COMMANDS[4] = {  {c: 'a', resp: ack},
-								  {c: 'm', resp: say_ms},
-								  {c: 'c', resp: set_color},
-								  {c: 't', resp: say_time},
-							   };
+#define N_CMDS 7
+static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack},
+									  {c: 'm', resp: say_ms},
+									  {c: 'c', resp: set_color},
+									  {c: 't', resp: say_time},
+									  {c: 'u', resp: set_passes},
+									  {c: 'd', resp: dump_mem},
+									  {c: 'T', resp: set_clock},
+							   		};
 
+
+/* FOR TESTING
+#define N_CMDS 1
+static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack} };
+*/
 
 /*******************************************************************************
 * INTERRUPTS
@@ -196,7 +211,7 @@ int main(void)
 		// Listen for commands over USB serial
 		char c;
 		if (fscanf(&USBSerialStream,"ISS%c\n", &c) == 1) {
-			for (i=0;i<4;i++) {
+			for (i=0;i<N_CMDS;i++) {
 				cmd command = COMMANDS[i];
 				if (command.c == c) {
 					command.resp();
@@ -205,52 +220,8 @@ int main(void)
 			}
 		}
 
-		/*
-		// Color update
-		int n;
-		int read = fscanf(&USBSerialStream,"c%d",&n);
-		if (read > 0) {
-			for (i=0;i<12;i++) {
-				show[i] = n;
-			}
-		set_data(show);
-		}
-
-    // Set block
-    int npasses;
-    ipass block[10];
-    if (fscanf(&USBSerialStream, "z%d\n", &npasses) == 1) {
+	/*
         
-        for (i=0;i<npasses;i++) {
-            uint32_t t;
-            uint16_t d;
-            ipass p;
-            
-            fscanf(&USBSerialStream, "%lu,%u,", &t, &d);
-            p.time = t;
-            p.duration = d;
-            block[i] = p;
-        }
-
-        eeprom_update_block((const void * ) &block, (void*) &ISS_Passes, sizeof(ipass)*npasses);        
-    }
-
-    // Get block
-    if (fscanf(&USBSerialStream,"getvalue%c", &hello) == 1) {
-        eeprom_read_block((void*) &block, (const void *) &ISS_Passes, sizeof(ipass)*10);
-        for (i=0;i<10;i++) {
-            fprintf(&USBSerialStream, "%lu - %u\n", block[i].time, block[i].duration);
-        }
-    }
-
-    // set time
-    int year, month, day, hour, min, sec;
-    if (fscanf(&USBSerialStream,"TY%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
-      time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
-      set_time(t);
-      fputs("set", &USBSerialStream);
-    }
-    
     // set alarm
     if (fscanf(&USBSerialStream,"AY%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
       time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
@@ -264,51 +235,7 @@ int main(void)
       clear_alarm0();
       fputs("reset alarm", &USBSerialStream);
     }
-
-    // battery
-    char bat;
-    if (fscanf(&USBSerialStream,"bat%c", &bat) == 1) {
-      // get charge status
-      CHARGE_STATUS chargestat = get_charge_status();
-
-      if (get_power_status() < 0)
-      {
-        fputs("bNOBAT", &USBSerialStream);
-      }
-      else
-      { 
-        switch (chargestat) {
-          case BULK_CHARGE:
-            fputs("bCHARGING", &USBSerialStream);
-            break;
-          case TRICKLE_CHARGE:
-            fputs("bCHARGED", &USBSerialStream);
-            break;
-          default:
-            fputs("bSTANDBY", &USBSerialStream);
-            break;
-        }
-      }
-    }
-    
-    if (pass > 0)
-    {
-      uint32_t curmills = millis();
-      if((curmills - premills) > 100) {
-        show[a] = 8;
-        set_data(show);
-        a++;
-        if (a >= 12)
-        {
-          for (i=0;i<12;i++) {
-           show[i] = 0;
-          }
-          a = 0;
-        }
-        premills = curmills;
-      }
-    }
-	*/
+    */
     
     // When an alarm is triggered by the RTC:
     if (alarm > 0)
@@ -335,12 +262,13 @@ int main(void)
 		  reset_alarm = 0;
 		  // Renenable interupts
 		  EIMSK |=  (1<<INT3);
-  }
-}
+  	} // END MAIN LOOP
+} // END MAIN
 
-/**
- * Commands:
- */
+
+/*******************************************************************************
+* COMMANDS
+*******************************************************************************/
 void ack(void)
 {
 	fputs("ack", &USBSerialStream);
@@ -366,6 +294,74 @@ void say_time(void)
 {
 	time now = get_time();
 	fprintf(&USBSerialStream, "Y%02dM%02dD%02dH%02dM%02dS%02d", now.year, now.month, now.day, now.hour, now.minute, now.second);
+}
+
+void set_passes(void)
+{
+	// Parse incoming data
+	uint8_t num, i;
+	ipass block[MAXPASS];
+	if (fscanf(&USBSerialStream,"%d\n", &num) == 1) {
+		// Loop through incoming data
+		for (i=0;i<num;i++) {
+			uint32_t t;
+			uint16_t d;
+			ipass p;
+			
+			if (fscanf(&USBSerialStream, "%lu,%u,", &t, &d) == 2) {
+				p.time = t;
+				p.duration = d;
+				block[i] = p;
+			}
+		}
+
+		// Write to eeprom
+		eeprom_update_block((const void * ) &block, (void*) &StoredISSPasses, sizeof(ipass)*num);
+		eeprom_update_byte((uint8_t*) &NumOfStoredISSPasses, (uint8_t) num);
+
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
+}
+
+void dump_mem(void)
+{
+	uint8_t i;
+	uint16_t color;
+	color = eeprom_read_word((uint16_t*) &NonVolatileColor);
+
+	uint8_t npass;
+	npass = eeprom_read_byte((uint8_t*) &NumOfStoredISSPasses);
+	if (npass > MAXPASS)
+		npass = MAXPASS;
+
+	// Echo data
+	fprintf(&USBSerialStream, "0x00 - color: %d|", (int) color);
+	fprintf(&USBSerialStream, "0x01 - npasses: %d|", (int) npass);
+
+
+	ipass block[MAXPASS];
+	eeprom_read_block((void*) &block, (const void *) &StoredISSPasses, sizeof(ipass)*npass);
+	for (i=0;i<npass;i++) {
+		fprintf(&USBSerialStream, "0x%02d - pass: %lu:u|", i+2, block[i].time, block[i].duration);
+	}
+}
+
+void set_clock(void)
+{
+	reset_rtc();
+
+	// set time
+	int year, month, day, hour, min, sec;
+	if (fscanf(&USBSerialStream,"Y%dM%dD%dH%dM%dS%d", &year, &month, &day, &hour, &min, &sec) == 6) {
+		time t = mktime((uint8_t) year, (uint8_t) month, (uint8_t) day, (uint8_t) hour, (uint8_t) min, (uint8_t) sec);
+		set_time(t);
+
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
 }
 
 /**
