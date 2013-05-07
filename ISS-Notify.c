@@ -106,8 +106,7 @@ uint8_t EEMEM NumOfStoredISSPasses;
 ipass EEMEM StoredISSPasses[MAXPASS];
 
 // Global variable that always stores current color
-unsigned int show[12] = {0,0,0,0,0,0,0,0,0,0,0,0};
-
+uint16_t show[8][3] = {{0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}};
 
 // Commands:
 #define N_CMDS 7
@@ -119,7 +118,6 @@ static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack},
 									  {c: 'd', resp: dump_mem},
 									  {c: 'T', resp: set_clock},
 							   		};
-
 
 /* FOR TESTING
 #define N_CMDS 1
@@ -133,7 +131,7 @@ static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack} };
 /**
  * Wake up on alarm
  */
-ISR(INT3_vect) 
+ISR(INT3_vect)
 {
 	// Disable interupt
 	EIMSK &= ~(1<<INT3);
@@ -186,9 +184,26 @@ int main(void)
 	// Enable interupts
 	sei();
 
-	led(show);
-	led(show);
+    show[0][0] = 0xffff;
+    show[0][1] = 0xffff;
+    show[0][2] = 0xffff;
 
+    show[1][0] = 0xffff;
+
+    show[2][0] = 0x7fff;
+    show[2][1] = 0x7fff;
+
+    show[3][1] = 0xffff;
+
+    show[4][1] = 0x7fff;
+    show[4][2] = 0x7fff;
+
+    show[5][2] = 0xffff;
+
+    show[6][0] = 0x7fff;
+    show[6][2] = 0x7fff;
+
+	led(show);
 
 
 	/***************************************************************************

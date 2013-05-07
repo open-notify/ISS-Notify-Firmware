@@ -54,33 +54,50 @@ void write_word(uint16_t word, uint8_t len)
 	SIN_LOW;
 }
 
-void led(uint16_t *lights)
+void led(uint16_t (*lights)[3])
 {
+    uint8_t i;
+	uint16_t *light;
+
 	// Write command
-	write_word(0x25, 6);
+	write_word(TLC_WRITE, 6);
 
 	// Config
-	write_word(0x16, 5);
+	write_word(TLC_TMGRST|TLC_DSPRPT, 5);
 
 	// BC
 	write_word(0x7f, 7);  //Blue
 	write_word(0x7f, 7);  //Green
 	write_word(0x7f, 7);  //Red
 
-	// Brightness
-	write_word(0x8000, 16);  //Blue3
-	write_word(0x8000, 16);  //Green3
-	write_word(0x8000, 16);  //Red3
+	// Colors
+    for (i=0;i<4;i++)
+    {
+		light = lights[i];
+		write_word(light[0], 16);  //Blue
+		write_word(light[1], 16);  //Green
+		write_word(light[2], 16);  //Red
+    }
 
-	write_word(0x8000, 16);  //Blue2
-	write_word(0x0000, 16);  //Green2
-	write_word(0x0000, 16);  //Red2
+	/* Second chip */
 
-	write_word(0x8000, 16);  //Blue1
-	write_word(0x0100, 16);  //Green1
-	write_word(0x0010, 16);  //Red1
+	// Write command
+	write_word(TLC_WRITE, 6);
 
-	write_word(0x0000, 16);  //Blue0
-	write_word(0x8000, 16);  //Green0
-	write_word(0x0000, 16);  //Red0
+	// Config
+	write_word(TLC_TMGRST|TLC_DSPRPT, 5);
+
+	// BC
+	write_word(0x7f, 7);  //Blue
+	write_word(0x7f, 7);  //Green
+	write_word(0x7f, 7);  //Red
+
+	// Colors
+    for (i=4;i<8;i++)
+    {
+		light = lights[i];
+		write_word(light[0], 16);  //Blue
+		write_word(light[1], 16);  //Green
+		write_word(light[2], 16);  //Red
+    }
 }
