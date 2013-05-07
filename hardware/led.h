@@ -24,14 +24,6 @@
  * sets up the pins.
  */
 
-/* Blank line (F5)*/
-#define BLANK_HIGH  (PORTF |=  (1<<5))
-#define BLANK_LOW   (PORTF &= ~(1<<5))
-
-/* Latch line (F4)*/
-#define LATCH_HIGH  (PORTF |=  (1<<4))
-#define LATCH_LOW   (PORTF &= ~(1<<4))
-
 /* Data in line (F1)*/
 #define SIN_HIGH    (PORTF |=  (1<<1))
 #define SIN_LOW     (PORTF &= ~(1<<1))
@@ -43,19 +35,9 @@
 /**
  * Set LED driver pins on Port F as output
  */
-#define LED_INIT   (DDRF |= 0x33) //(000110011)
-
-/**
- * take a 16 bit number and shifts it out on the data line.
- */
-void shift_out(int word);
+#define LED_INIT   (DDRF |= 0x03) //(000000011)
 
 /**
  * Initilize hardware
  */
 void LED_Init(void);
-
-// mutable state for swiching lights
-volatile unsigned int level;
-volatile unsigned int color_data[3][4];
-void set_data(unsigned int *color);

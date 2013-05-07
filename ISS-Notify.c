@@ -186,21 +186,9 @@ int main(void)
 	// Enable interupts
 	sei();
 
+	led(show);
+	led(show);
 
-	// Wake up animation:
-	uint16_t stored_color;
-	stored_color = eeprom_read_word(&NonVolatileColor);
-	for (i=0;i<12;i++) {
-		show[i] = (int) stored_color;
-		set_data(show);
-		_delay_ms(20);
-	}
-	_delay_ms(100);
-	for (i=11;i>=0;i--) {
-		show[i] = 0;
-		set_data(show);
-		_delay_ms(20);
-	}
 
 
 	/***************************************************************************
