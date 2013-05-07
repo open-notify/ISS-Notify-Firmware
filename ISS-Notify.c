@@ -332,7 +332,7 @@ void dump_mem(void)
 	ipass block[MAXPASS];
 	eeprom_read_block((void*) &block, (const void *) &StoredISSPasses, sizeof(ipass)*npass);
 	for (i=0;i<npass;i++) {
-		fprintf(&USBSerialStream, "0x%02d - pass: %lu:u|", i+2, block[i].time, block[i].duration);
+		fprintf(&USBSerialStream, "0x%02d - pass: %lu:%u|", i+2, block[i].time, block[i].duration);
 	}
 }
 
