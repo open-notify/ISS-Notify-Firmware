@@ -24,6 +24,7 @@
  */
 
 #include <avr/io.h>
+#include "structs.h"
 #include "led.h"
 
 void write_word(uint16_t word, uint8_t len);
@@ -66,9 +67,9 @@ void led(uint16_t (*lights)[3])
 	write_word(TLC_TMGRST|TLC_DSPRPT, 5);
 
 	// BC
-	write_word(0x7f, 7);  //Blue
-	write_word(0x7f, 7);  //Green
-	write_word(0x7f, 7);  //Red
+	write_word(TLC_Blue_WB, 7);  //Blue
+	write_word(TLC_Green_WB, 7);  //Green
+	write_word(TLC_Red_WB, 7);  //Red
 
 	// Colors
     for (i=0;i<4;i++)
@@ -88,9 +89,9 @@ void led(uint16_t (*lights)[3])
 	write_word(TLC_TMGRST|TLC_DSPRPT, 5);
 
 	// BC
-	write_word(0x7f, 7);  //Blue
-	write_word(0x7f, 7);  //Green
-	write_word(0x7f, 7);  //Red
+	write_word(TLC_Blue_WB, 7);  //Blue
+	write_word(TLC_Green_WB, 7);  //Green
+	write_word(TLC_Red_WB, 7);  //Red
 
 	// Colors
     for (i=4;i<8;i++)

@@ -43,6 +43,10 @@
 #define TLC_DSPRPT  0x02 //Auto display repeat mode enable
 #define TLC_BLANK   0x01 //Constant-current output enable
 
+/* White Balance Variables */
+uint8_t TLC_Blue_WB;
+uint8_t TLC_Green_WB;
+uint8_t TLC_Red_WB;
 
 /**
  * Initilize hardware

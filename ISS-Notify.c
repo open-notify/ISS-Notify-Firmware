@@ -32,33 +32,23 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "structs.h"
+#include "eeproms.h"
 #include "library/LUFA/Version.h"
 #include "library/LUFA/Drivers/USB/USB.h"
 #include "hardware/led.h"
 #include "hardware/analog.h"
 #include "hardware/rtc.h"
 #include "hardware/charge.h"
-#include "structs.h"
 #include "Descriptors.h"
 
 
 // CPU prescaler helper
 #define CPU_PRESCALE(n)	(CLKPR = 0x80, CLKPR = (n))
 
-// Maximum number of passes EEPROM can hold
-#define MAXPASS 10
-
 // Hardware initializer routine
 void Setup_Hardware(void);
 uint32_t millis(void);
-
-void ack(void);
-void say_ms(void);
-void set_color(void);
-void say_time(void);
-void set_passes(void);
-void dump_mem(void);
-void set_clock(void);
 
 /** Standard file stream for the CDC interface when set up, so that the virtual CDC COM port can be
  *  used like any regular character stream in the C APIs
@@ -99,17 +89,22 @@ volatile uint8_t alarm       = 0;
 volatile uint8_t pass        = 0;
 volatile uint32_t ms         = 0;
 
-// EEPROM Storage
-uint16_t EEMEM NonVolatileColor;
-//uint8_t EEMEM NonVolatileOptions;
-uint8_t EEMEM NumOfStoredISSPasses;
-ipass EEMEM StoredISSPasses[MAXPASS];
-
 // Global variable that always stores current color
 uint16_t show[8][3] = {{0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}, {0,0,0}};
 
 // Commands:
-#define N_CMDS 7
+#define N_CMDS 11
+void ack(void);
+void say_ms(void);
+void set_color(void);
+void say_time(void);
+void set_passes(void);
+void dump_mem(void);
+void set_clock(void);
+void wb_red(void);
+void wb_green(void);
+void wb_blue(void);
+void set_wb(void);
 static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack},
 									  {c: 'm', resp: say_ms},
 									  {c: 'c', resp: set_color},
@@ -117,6 +112,10 @@ static const cmd COMMANDS[N_CMDS] = { {c: 'a', resp: ack},
 									  {c: 'u', resp: set_passes},
 									  {c: 'd', resp: dump_mem},
 									  {c: 'T', resp: set_clock},
+                                      {c: 'r', resp: wb_red},
+                                      {c: 'g', resp: wb_green},
+                                      {c: 'b', resp: wb_blue},
+                                      {c: 'W', resp: set_wb},
 							   		};
 
 /* FOR TESTING
@@ -156,12 +155,10 @@ ISR(TIMER3_COMPA_vect)
 *******************************************************************************/
 int main(void)
 {
-	int i;
+	uint8_t i, j;
 
 	// Setup hardware
 	Setup_Hardware();
-
-	//unsigned int battery_wheel[12] = {8,  8,  24, 40, 39, 55, 70, 99, 131, 130, 129, 128};
 
 	/**
 	 * Setting up USB communication
@@ -184,27 +181,36 @@ int main(void)
 	// Enable interupts
 	sei();
 
-    show[0][0] = 0xffff;
-    show[0][1] = 0xffff;
-    show[0][2] = 0xffff;
-
-    show[1][0] = 0xffff;
-
-    show[2][0] = 0x7fff;
-    show[2][1] = 0x7fff;
-
-    show[3][1] = 0xffff;
-
-    show[4][1] = 0x7fff;
-    show[4][2] = 0x7fff;
-
-    show[5][2] = 0xffff;
-
-    show[6][0] = 0x7fff;
-    show[6][2] = 0x7fff;
-
+	// Startup animation
+	for (i=0;i<100;i++)
+	{
+		for (j=0;j<8;j++)
+		{
+			show[j][0] = i*655;
+			show[j][1] = i*655;
+			show[j][2] = i*655;
+		}
+		led(show);
+		_delay_ms(1);
+	}
+	for (i=100;i>1;i--)
+	{
+		for (j=0;j<8;j++)
+		{
+			show[j][0] = i*655;
+			show[j][1] = i*655;
+			show[j][2] = i*655;
+		}
+		led(show);
+		_delay_ms(2);
+	}
+	for (j=0;j<8;j++)
+	{
+		show[j][0] = 0;
+		show[j][1] = 0;
+		show[j][2] = 0;
+	}
 	led(show);
-
 
 	/***************************************************************************
 	* THE MAIN LOOP
@@ -302,7 +308,8 @@ void say_time(void)
 void set_passes(void)
 {
 	// Parse incoming data
-	uint8_t num, i;
+	uint8_t i;
+	int num;
 	ipass block[MAXPASS];
 	if (fscanf(&USBSerialStream,"%d\n", &num) == 1) {
 		// Loop through incoming data
@@ -366,6 +373,86 @@ void set_clock(void)
 	else
 		fputs("err", &USBSerialStream);
 }
+
+
+void wb_red(void)
+{
+	uint8_t i;
+	int v;
+	if (fscanf(&USBSerialStream,"%d", &v) == 1) {
+		for (i=0;i<8;i++) {
+			show[i][0] = 0xffff;
+			show[i][1] = 0xffff;
+			show[i][2] = 0xffff;
+		}
+		TLC_Red_WB = v;
+		led(show);
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
+}
+
+void wb_green(void)
+{
+	uint8_t i;
+	int v;
+	if (fscanf(&USBSerialStream,"%d", &v) == 1) {
+		for (i=0;i<8;i++) {
+			show[i][0] = 0xffff;
+			show[i][1] = 0xffff;
+			show[i][2] = 0xffff;
+		}
+		TLC_Green_WB = v;
+		led(show);
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
+}
+
+void wb_blue(void)
+{
+	uint8_t i;
+	int v;
+	if (fscanf(&USBSerialStream,"%d", &v) == 1) {
+		for (i=0;i<8;i++) {
+			show[i][0] = 0xffff;
+			show[i][1] = 0xffff;
+			show[i][2] = 0xffff;
+		}
+		TLC_Blue_WB = v;
+		led(show);
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
+}
+
+void set_wb(void)
+{
+	uint8_t i;
+	int b,g,r;
+	if (fscanf(&USBSerialStream,"%d,%d,%d", &b,&g,&r) == 3) {
+		for (i=0;i<8;i++) {
+			show[i][0] = 0;
+			show[i][1] = 0;
+			show[i][2] = 0;
+		}
+		TLC_Blue_WB = b;
+		TLC_Green_WB = g;
+		TLC_Red_WB = r;
+		eeprom_update_byte((uint8_t*) &NonVolatile_Blue_WB, (uint8_t) b);
+		eeprom_update_byte((uint8_t*) &NonVolatile_Green_WB, (uint8_t) g);
+		eeprom_update_byte((uint8_t*) &NonVolatile_Red_WB, (uint8_t) r);
+
+		led(show);
+		fputs("set", &USBSerialStream);
+	}
+	else
+		fputs("err", &USBSerialStream);
+}
+
 
 /**
  * Helper funtion to get current number of milliseconds since boot
@@ -435,6 +522,10 @@ void Setup_Hardware(void)
 
 	// Initilise pins and interupts for LED driver
 	LED_Init();
+	TLC_Blue_WB = eeprom_read_byte((uint8_t*) &NonVolatile_Blue_WB);
+	TLC_Green_WB = eeprom_read_byte((uint8_t*) &NonVolatile_Green_WB);
+	TLC_Red_WB = eeprom_read_byte((uint8_t*) &NonVolatile_Red_WB);
+
 
 	// Initilise USB
 	USB_Init();
