@@ -2,10 +2,10 @@
 #define MAXPASS 10
 
 // EEPROM Storage
-uint16_t EEMEM NonVolatileColor;
-uint8_t EEMEM NonVolatile_Blue_WB;
-uint8_t EEMEM NonVolatile_Green_WB;
-uint8_t EEMEM NonVolatile_Red_WB;
+extern uint16_t EEMEM NonVolatileColor;
+extern uint8_t EEMEM NonVolatile_Blue_WB;
+extern uint8_t EEMEM NonVolatile_Green_WB;
+extern uint8_t EEMEM NonVolatile_Red_WB;
 //uint8_t EEMEM NonVolatileOptions;
-uint8_t EEMEM NumOfStoredISSPasses;
-ipass EEMEM StoredISSPasses[MAXPASS];
+extern uint8_t EEMEM NumOfStoredISSPasses;
+extern ipass EEMEM StoredISSPasses[MAXPASS];
