@@ -16,16 +16,32 @@
 /*******************************************************************************
 * COMMANDS
 *******************************************************************************/
+
+
+/**
+ * Acknowledge. Lets a client know that it's here and talking.
+ * Replies: 'ack' to the USB serial stream
+ */
 void ack(void)
 {
 	fputs("ack", &USBSerialStream);
 }
 
+
+/**
+ * Say milliseconds
+ * Replies: current number of milliseconds since boot. For debug purposes.
+ */
 void say_ms(void)
 {
 	fprintf(&USBSerialStream, "%lu", millis());
 }
 
+
+/**
+ * Set the user defined color for diplaying passes
+ * Replies: 'set' if successfull
+ */
 void set_color(void)
 {
 	int color;
@@ -37,12 +53,21 @@ void set_color(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Say Time. Will repsond with a date time stamp from the RTC
+ * Replies: timestamp
+ */
 void say_time(void)
 {
 	time now = get_time();
 	fprintf(&USBSerialStream, "Y%02dM%02dD%02dH%02dM%02dS%02d", now.year, now.month, now.day, now.hour, now.minute, now.second);
 }
 
+
+/**
+ * Set upcoming passes. Writes the incoming pass data to EEPROM storage
+ */
 void set_passes(void)
 {
 	// Parse incoming data
@@ -73,6 +98,11 @@ void set_passes(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Dump Current Memory. Dumps the EEPROM blocks over USB stream
+ * Mostly for debug.
+ */
 void dump_mem(void)
 {
 	uint8_t i;
@@ -96,6 +126,10 @@ void dump_mem(void)
 	}
 }
 
+
+/**
+ * Set The Date and Time on the RTC.
+ */
 void set_clock(void)
 {
 	reset_rtc();
@@ -113,6 +147,9 @@ void set_clock(void)
 }
 
 
+/**
+ * Show a red value of for whitebalance
+ */
 void wb_red(void)
 {
 	uint8_t i;
@@ -131,6 +168,10 @@ void wb_red(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Show a green value of for whitebalance
+ */
 void wb_green(void)
 {
 	uint8_t i;
@@ -149,6 +190,10 @@ void wb_green(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Show a blue value of for whitebalance
+ */
 void wb_blue(void)
 {
 	uint8_t i;
@@ -167,6 +212,10 @@ void wb_blue(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Set the whitebalance.
+ */
 void set_wb(void)
 {
 	uint8_t i;
@@ -191,6 +240,10 @@ void set_wb(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Updates all the LEDs to a user defined color
+ */
 void show_color(void)
 {
 	int b,g,r,i;
@@ -206,6 +259,10 @@ void show_color(void)
 		fputs("err", &USBSerialStream);
 }
 
+
+/**
+ * Easteregg: Toggle Rainbow mode.
+ */
 void toggle_rainbow(void)
 {
 	int i;
@@ -221,6 +278,7 @@ void toggle_rainbow(void)
 	else
 		do_rainbow = true;
 }
+
 
 /** TODO:
 
