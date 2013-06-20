@@ -2,26 +2,36 @@
 
 This has all the code that gets flashed to the ISS-Notify board.
 
-Build:
+### Requriements:
+
+    $ sudo apt-get install gcc-avr avr-libc
+
+And for the host loader app
+
+    $ sudo apt-get install libusb-dev
+    $ cd HostLoaderApp
+    $ make
+
+### Build:
 
     $ make
 
-Clean:
+### Clean:
 
     $ make clean
 
 ## Dirctory Structure
 
- - hardware (ISS-Notify board drivers)
+ - `hardware` (ISS-Notify board drivers)
    - LED code
    - USB code
    - RTC code
    - charge (LiPo charger) code
    - analog reading helper
- - library (external libraries)
+ - `library` (external libraries)
    - LUFA USB library
    - I2C driver
- - Test (simple sample code)
+ - `Test` (simple sample code)
    - blink
    - clock
  - ISS-Notify.c (main code)
