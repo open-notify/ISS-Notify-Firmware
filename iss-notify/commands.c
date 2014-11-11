@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include "structs.h"
 #include "eeproms.h"
-#include "library/LUFA/Version.h"
-#include "library/LUFA/Drivers/USB/USB.h"
+#include "../lib/vendor/lufa/LUFA/Version.h"
+#include "../lib/vendor/lufa/LUFA/Drivers/USB/USB.h"
 #include "hardware/rtc.h"
 #include "hardware/led.h"
 #include "ISS-Notify.h"

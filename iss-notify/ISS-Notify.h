@@ -17,3 +17,9 @@ extern bool do_rainbow;
 extern uint32_t previousMillis;
 extern uint8_t bow_rotate;
 
+/* LUFA USB Events */
+void EVENT_USB_Device_Connect(void);
+void EVENT_USB_Device_Disconnect(void);
+void EVENT_USB_Device_ConfigurationChanged(void);
+void EVENT_USB_Device_ControlRequest(void);
+

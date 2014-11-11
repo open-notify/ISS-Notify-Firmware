@@ -1,6 +1,6 @@
 #include <avr/io.h>
 #include <stdint.h>
-#include "library/twi.h"
+#include "../../lib/twi.h"
 #include "rtc.h"
 
 static uint8_t rtc_state;

@@ -116,7 +116,7 @@ OBJDIR = .
 
 
 # Path to the LUFA library
-LUFA_PATH = library
+LUFA_PATH = ../lib/vendor/lufa
 
 
 # LUFA library compile-time options and predefined tokens
@@ -135,12 +135,12 @@ include $(LUFA_PATH)/LUFA/makefile
 
 # List C source files here. (C dependencies are automatically generated.)
 SRC = $(TARGET).c             \
-    Descriptors.c             \
+    ../common/Descriptors.c   \
     hardware/led.c            \
     hardware/analog.c         \
     hardware/rtc.c            \
     hardware/charge.c         \
-    library/twi.c             \
+    ../lib/twi.c              \
     commands.c                \
 	$(LUFA_SRC_USB)           \
 	$(LUFA_SRC_USBCLASS)

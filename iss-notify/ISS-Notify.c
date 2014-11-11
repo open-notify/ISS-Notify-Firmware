@@ -34,9 +34,9 @@
 #include <stdint.h>
 #include "structs.h"
 #include "eeproms.h"
-#include "library/LUFA/Version.h"
-#include "library/LUFA/Drivers/USB/USB.h"
-#include "Descriptors.h"
+#include "../lib/vendor/lufa/LUFA/Version.h"
+#include "../lib/vendor/lufa/LUFA/Drivers/USB/USB.h"
+#include "../common/Descriptors.h"
 #include "hardware/led.h"
 #include "hardware/analog.h"
 #include "hardware/rtc.h"
@@ -46,40 +46,39 @@
 
 // Hardware initializer routine
 void Setup_Hardware(void);
-
-// File-like object for talking over USB
 FILE USBSerialStream;
 
-/** 
- * LUFA CDC Class driver interface configuration and state information. This structure is
- * passed to all CDC Class driver functions, so that multiple instances of the same class
- * within a device can be differentiated from one another.
+
+/** LUFA CDC Class driver interface configuration and state information. This structure is
+ *  passed to all CDC Class driver functions, so that multiple instances of the same class
+ *  within a device can be differentiated from one another.
  */
 USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
 	{
 		.Config =
 			{
-				.ControlInterfaceNumber         = 0,
-
-				.DataINEndpointNumber           = CDC_TX_EPNUM,
-				.DataINEndpointSize             = CDC_TXRX_EPSIZE,
-				.DataINEndpointDoubleBank       = false,
-
-				.DataOUTEndpointNumber          = CDC_RX_EPNUM,
-				.DataOUTEndpointSize            = CDC_TXRX_EPSIZE,
-				.DataOUTEndpointDoubleBank      = false,
-
-				.NotificationEndpointNumber     = CDC_NOTIFICATION_EPNUM,
-				.NotificationEndpointSize       = CDC_NOTIFICATION_EPSIZE,
-				.NotificationEndpointDoubleBank = false,
+				.ControlInterfaceNumber   = INTERFACE_ID_CDC_CCI,
+				.DataINEndpoint           =
+					{
+						.Address          = CDC_TX_EPADDR,
+						.Size             = CDC_TXRX_EPSIZE,
+						.Banks            = 1,
+					},
+				.DataOUTEndpoint =
+					{
+						.Address          = CDC_RX_EPADDR,
+						.Size             = CDC_TXRX_EPSIZE,
+						.Banks            = 1,
+					},
+				.NotificationEndpoint =
+					{
+						.Address          = CDC_NOTIFICATION_EPADDR,
+						.Size             = CDC_NOTIFICATION_EPSIZE,
+						.Banks            = 1,
+					},
 			},
 	};
 
-/* LUFA USB Events */
-void EVENT_USB_Device_Connect(void);
-void EVENT_USB_Device_Disconnect(void);
-void EVENT_USB_Device_ConfigurationChanged(void);
-void EVENT_USB_Device_ControlRequest(void);
 
 /* variables that get updated by interupts */
 volatile uint8_t reset_alarm = 0;
