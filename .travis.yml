@@ -1,0 +1,3 @@
+language: c
+install: sudo apt-get install -qq gcc-avr avr-libc
+script: make build
